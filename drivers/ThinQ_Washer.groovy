@@ -25,6 +25,7 @@ metadata {
         attribute "delayTimeDisplay", "string"
         attribute "finishTimeDisplay", "string"
         attribute "currentState", "string"
+        attribute "currentState_", "string"
         attribute "error", "string"
         attribute "course", "string"
         attribute "smartCourse", "string"
@@ -163,8 +164,10 @@ def processStateData(data) {
         } else {
           logger("info", "CurrentState: ${currentStateName}")
         }
+          parent.notificationCheck(device.displayName, currentStateName )
       }
       sendEvent(name: "currentState", value: currentStateName)
+      sendEvent(name: "currentState_", value: titleCase(currentStateName))
 
       def currentStateSwitch = (currentStateName =~ /power off/ ? 'off' : 'on')
       if (device.currentValue("switch") != currentStateSwitch) {
@@ -222,4 +225,8 @@ private logger(level, msg) {
       log."${level}" "${device.displayName} ${msg}"
     }
   }
+}
+
+def titleCase(str) {
+    str.split("\\s+").collect { it.toLowerCase().capitalize() }.join(" ")
 }
