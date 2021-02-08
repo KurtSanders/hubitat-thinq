@@ -299,7 +299,7 @@ def prefDevices() {
             section(getFormat("header-green", " Notification Preferences"))  {
                 input name: "notifyCycles", type: "enum", title: "Select the pre-defined machine cycles to send notifications?", options: currentStateCycleList, required: false, multiple: true
                 input name: "notifymodes",  type: "mode", title: "Send notifications only in these Hubitat modes", required: true, multiple: true
-	}
+            }
             section(getFormat("header-green", " Notification Devices")) {
                 // PushOver Devices
                 input name: "pushovertts", type: "bool", title: "Use 'Pushover' device(s)?", required: false, defaultValue: false, submitOnChange: true
@@ -1374,14 +1374,19 @@ private logger(level, msg) {
 	}
 }
 
-def notificationCheck(displayName, currentStateName="Unknown Cycle???") {
-    logger("debug", "${currentStateName} <- Checking for Cycle Alert")
+def notificationCheck(displayName, currentStateName="Unknown Cycle???", remainingTime=0) {
+    logger("debug", "notificationCheck(${displayName}, ${currentStateName}, ${remainingTime}) <- Check to see this cycle is a selected cycle for sending a notification")
     if ( (notifyCycles) && (notifymodes.find {it == location.mode}) ) {
         if (notifyCycles.find {it == currentStateName}) {
             logger("debug", "${currentStateName} <- Match to Selected -> alertNow()")
             def dateTime = new Date()  //get current localtime
             def now = dateTime.format("h:mm a", location.timeZone)
-            alertNow("The ${displayName} is now on a '${titleCase(currentStateName)}' cycle at ${now}")
+            def msg = "The ${displayName} is now on a ${titleCase(currentStateName)} cycle at ${now}"
+            if (remainingTime > 60) {
+                msg += " and will finish in approximately ${remainingTime/60} minutes."
+            }
+            logger("debug", msg)
+            alertNow(msg)
         } else {
             logger("debug", "notificationCheck(): {$currentStateName} <- No Match to Selected")
         }
@@ -1404,7 +1409,10 @@ def talkNow(alertmsg) {
     if(echoSpeaks2) {
         logger("debug", "Sending alert to Echo Speaks device(s).")
         try {
-            echospeaker.setVolumeSpeakAndRestore(speakervolume, alertmsg)
+            echospeaker.each {
+                logger("debug","Sending ${alertmsg} to Echo device: '${it.displayName}'")
+                it.setVolumeSpeakAndRestore(speakervolume, alertmsg)
+            }
         }
         catch (any) {logger("warn", "Echo Speaks device(s) has not been selected.")}
     }

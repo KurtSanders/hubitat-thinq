@@ -140,6 +140,9 @@ def processStateData(data) {
     if (parent.checkValue(data,'Remain_Time_M')) {
       remainingTime += (data["Remain_Time_M"]*60)
     }
+    if (remainingTime > 0) {
+        atomicState.remainingTime = remainingTime
+    }
     remainingTimeDisplay = parent.convertSecondsToTime(remainingTime)
 
     Date currentTime = new Date()
@@ -157,15 +160,18 @@ def processStateData(data) {
     delayTimeDisplay = parent.convertSecondsToTime(delayTime)
 
     if (parent.checkValue(data,'State')) {
-      String currentStateName = parent.cleanEnumValue(data["State"], "@WM_STATE_")
-      if (device.currentValue("currentState") != currentStateName) {
-        if(logDescText) {
-          log.info "${device.displayName} CurrentState: ${currentStateName}"
-        } else {
-          logger("info", "CurrentState: ${currentStateName}")
+        String currentStateName = parent.cleanEnumValue(data["State"], "@WM_STATE_")
+        if (["power off","power on","end"].contains(currentStatename)) {
+            atomicState.remainingTime = 0
         }
-          parent.notificationCheck(device.displayName, currentStateName )
-      }
+        if (device.currentValue("currentState") != currentStateName) {
+            if(logDescText) {
+                log.info "${device.displayName} CurrentState: ${currentStateName}"
+            } else {
+                logger("info", "CurrentState: ${currentStateName}")
+            }
+            parent.notificationCheck(device.displayName, currentStateName, atomicState.remainingTime)
+        }
       sendEvent(name: "currentState", value: currentStateName)
       sendEvent(name: "currentState_", value: titleCase(currentStateName))
 
